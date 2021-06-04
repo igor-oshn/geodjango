@@ -1,0 +1,116 @@
+{% extends 'admin/base_site.html' %}
+
+
+{% block title %}Карта локаций{% endblock %}
+
+{% block content %}
+<style>
+    .container{
+        display: grid;
+        justify-items: center;
+    }
+    #get_loc_btn {
+        text-align: center;
+        width: 250px;
+        height: 50px;
+        background-color: white;
+        color: green;
+        border: 1px solid green;
+        border-radius: 5px;
+        margin-top: 25px;
+        font-size: 16px;
+        transition: 0.3s linear;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    #get_loc_btn:hover {
+        background-color: green;
+        color: white;
+    }
+    #googleMap {
+        width: 80%;
+        height: 50%;
+    }
+    #title {
+        font-size: 45px;
+    }
+</style>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+<script src="https://unpkg.com/@googlemaps/markerclustererplus/dist/index.min.js"></script>
+
+<div class="container">
+    <div id="title">Location Map</div>
+    <div id="googleMap" style="width:100%;height:500px;"></div>
+    <button id="get_loc_btn" onclick="get_locations()">Get locations</button>
+</div>
+
+<script>
+
+let device_id = localStorage.getItem('DeviceID');
+let company_id;
+let locations = [];
+let locations_json = JSON.parse('{{ locs | safe }}');
+locations_json.forEach(function(object) {
+  locations.push({lat: parseFloat(object.fields.latitude), lng: parseFloat(object.fields.longitude)})
+});
+const csrf_token = '{{csrf_token}}';
+
+Map();
+
+
+function Map(lat, lng) {
+
+  const map = new google.maps.Map(document.getElementById("googleMap"), {
+    zoom: 4,
+    center: { lat: lat || 60.024, lng: lng || 30.887 },
+  });
+  const labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  if (lat || lng) {
+      check_duplicates({lat: lat, lng: lng});
+  }
+  let markers = locations.map((location, i) => {
+    return new google.maps.Marker({
+      position: location,
+      label: labels[i % labels.length],
+    });
+  });
+  // Add a marker clusterer to manage the markers.
+  new MarkerClusterer(map, markers, {
+    imagePath:
+      "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m",
+  });
+}
+
+function check_duplicates(obj) {
+    let o = locations.find(o => o.lat === obj.lat);
+    if (!o) locations.push(obj)
+}
+
+function get_locations() {
+    let request = new XMLHttpRequest();
+    let url = "/admin-map/";
+
+    request.responseType =	"json";
+    request.open("GET", url, true);
+    request.setRequestHeader("Content-type", "application/json");
+    request.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+    request.setRequestHeader("X-CSRFToken", csrf_token);
+
+    request.addEventListener("readystatechange", () => {
+
+        if (request.readyState === 4 && request.status === 200) {
+            locations = [];
+            let obj = JSON.parse(request.response);
+            for (k in obj) {
+                locations.push({lat: parseFloat(obj[k].fields.latitude), lng: parseFloat(obj[k].fields.longitude)})
+            }
+            Map(locations[0].lat, locations[0].lng);
+        }
+    });
+    request.send();
+}
+
+</script>
+
+
+{% endblock %}
