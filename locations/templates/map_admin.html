@@ -46,8 +46,6 @@
 
 <script>
 
-let device_id = localStorage.getItem('DeviceID');
-let company_id;
 let locations = [];
 let locations_json = JSON.parse('{{ locs | safe }}');
 locations_json.forEach(function(object) {

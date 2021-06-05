@@ -1,16 +1,15 @@
+from django.contrib.auth.decorators import login_required
 from django.core import serializers
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.contrib.auth.models import User, Group
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework import permissions
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 
 from .models import Company, Device, Location
 from .serializers import CompanySerializer, DeviceSerializer, LocationSerializer
 
 
+@login_required
 def admin_page(request):
     locs = []
     devices = Device.objects.all()
